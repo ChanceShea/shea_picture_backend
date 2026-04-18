@@ -1,6 +1,6 @@
 package com.shea.picture.sheapicture.mapper;
 
-import com.shea.picture.sheapicture.domain.User;
+import com.shea.picture.sheapicture.domain.entity.User;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 
 /**

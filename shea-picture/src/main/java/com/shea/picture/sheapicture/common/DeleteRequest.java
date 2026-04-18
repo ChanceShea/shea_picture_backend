@@ -12,5 +12,5 @@ import java.io.Serializable;
 @Data
 public class DeleteRequest implements Serializable {
 
-    private String id;
+    private Long id;
 }

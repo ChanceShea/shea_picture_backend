@@ -14,8 +14,8 @@ spring:
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
   configuration:
+    map-underscore-to-camel-case: false  # 显式关闭
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
-    map-underscore-to-camel-case: true
   global-config:
     db-config:
       logic-delete-field: isDelete
