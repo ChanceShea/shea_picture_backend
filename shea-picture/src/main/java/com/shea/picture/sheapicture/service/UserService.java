@@ -69,5 +69,12 @@ public interface UserService extends IService<User> {
      */
     List<UserVO> getUserVOList(List<User> userList);
 
+    /**
+     * 获取查询条件
+     * @param dto 查询参数
+     * @return 查询条件
+     */
     QueryWrapper<User> getQueryWrapper(UserQueryDTO dto);
+
+    boolean isAdmin(User user);
 }
