@@ -6,6 +6,7 @@ import com.shea.picture.sheapicture.annotation.AuthCheck;
 import com.shea.picture.sheapicture.common.DeleteRequest;
 import com.shea.picture.sheapicture.common.Result;
 import com.shea.picture.sheapicture.constant.UserConstant;
+import com.shea.picture.sheapicture.domain.dto.picture.PictureEditDTO;
 import com.shea.picture.sheapicture.domain.vo.PictureTagCategoryVO;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureQueryDTO;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureUpdateDTO;
@@ -115,7 +116,7 @@ public class PictureController {
         return Result.success(PictureVO.objToVo(picture));
     }
 
-    @GetMapping("/list/page")
+    @PostMapping("/list/page")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public Result<Page<Picture>> listPictureByPage(@RequestBody PictureQueryDTO dto, HttpServletRequest request) {
         long current = dto.getCurrent();
@@ -124,7 +125,7 @@ public class PictureController {
         return Result.success(page);
     }
 
-    @GetMapping("/list/page/vo")
+    @PostMapping("/list/page/vo")
     public Result<Page<PictureVO>> listPictureByPageVO(@RequestBody PictureQueryDTO dto, HttpServletRequest request) {
         long current = dto.getCurrent();
         long size = dto.getPageSize();
@@ -134,7 +135,7 @@ public class PictureController {
     }
 
     @PostMapping("/edit")
-    public Result<Boolean> editPicture(@RequestBody PictureUpdateDTO dto,HttpServletRequest request) {
+    public Result<Boolean> editPicture(@RequestBody PictureEditDTO dto, HttpServletRequest request) {
         if (dto == null || dto.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
