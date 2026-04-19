@@ -17,14 +17,15 @@ import com.shea.picture.sheapicture.domain.vo.PictureVO;
 import com.shea.picture.sheapicture.domain.vo.UserVO;
 import com.shea.picture.sheapicture.exception.BusinessException;
 import com.shea.picture.sheapicture.exception.ErrorCode;
-import com.shea.picture.sheapicture.manager.FileManager;
+import com.shea.picture.sheapicture.manager.upload.FilePictureUpload;
+import com.shea.picture.sheapicture.manager.upload.PictureUploadTemplate;
+import com.shea.picture.sheapicture.manager.upload.UrlPictureUpload;
 import com.shea.picture.sheapicture.mapper.PictureMapper;
 import com.shea.picture.sheapicture.service.PictureService;
 import com.shea.picture.sheapicture.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.*;
@@ -42,7 +43,8 @@ import static com.shea.picture.sheapicture.exception.ThrowUtils.throwIf;
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         implements PictureService {
 
-    private final FileManager fileManager;
+    private final FilePictureUpload filePictureUpload;
+    private final UrlPictureUpload urlPictureUpload;
     private final UserService userService;
 
     @Override
@@ -51,17 +53,17 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Long id = picture.getId();
         String url = picture.getUrl();
         String introduction = picture.getIntroduction();
-        throwIf(ObjectUtil.isNull(id),ErrorCode.PARAMS_ERROR,"id不能为空");
+        throwIf(ObjectUtil.isNull(id), ErrorCode.PARAMS_ERROR, "id不能为空");
         if (StrUtil.isNotBlank(url)) {
-            throwIf(url.length() > 1024,ErrorCode.PARAMS_ERROR,"url过长");
+            throwIf(url.length() > 1024, ErrorCode.PARAMS_ERROR, "url过长");
         }
         if (StrUtil.isNotBlank(introduction)) {
-            throwIf(introduction.length() > 800,ErrorCode.PARAMS_ERROR,"简介过长");
+            throwIf(introduction.length() > 800, ErrorCode.PARAMS_ERROR, "简介过长");
         }
     }
 
     @Override
-    public PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadDTO dto, User loginUser) {
+    public PictureVO uploadPicture(Object inputSource, PictureUploadDTO dto, User loginUser) {
         // 校验参数
         throwIf(loginUser == null, ErrorCode.NO_AUTH_ERROR);
         Long pictureId = null;
@@ -71,7 +73,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 如果是更新，判断图片是否存在
         if (pictureId != null) {
             Picture oldPicture = this.getById(pictureId);
-            throwIf(oldPicture == null, ErrorCode.PARAMS_ERROR,"图片不存在");
+            throwIf(oldPicture == null, ErrorCode.PARAMS_ERROR, "图片不存在");
             // 仅本人或管理员可以更新图片
             if (!Objects.equals(oldPicture.getUserId(), loginUser.getId()) && !userService.isAdmin(loginUser)) {
                 throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
@@ -80,7 +82,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 上传图片，附带图片信息
         // 按照用户id划分目录
         String uploadPathPrefix = String.format("public/%s", loginUser.getId());
-        UploadPictureDTO uploadPictureDTO = fileManager.uploadPicture(multipartFile, uploadPathPrefix);
+        // 根据inputSource的类型区分上传方式
+        PictureUploadTemplate template = filePictureUpload;
+        if (inputSource instanceof String) {
+            template = urlPictureUpload;
+        }
+            UploadPictureDTO uploadPictureDTO = template.uploadPicture(inputSource, uploadPathPrefix);
         // 拷贝图片信息
         Picture picture = Picture
                 .builder()
@@ -123,7 +130,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getPicSize()), "picSize", dto.getPicSize());
         queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getPicWidth()), "picWidth", dto.getPicWidth());
         queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getPicHeight()), "picHeight", dto.getPicHeight());
-        queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getPicScale()),"picScale", dto.getPicScale());
+        queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getPicScale()), "picScale", dto.getPicScale());
         queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getReviewStatus()), "reviewStatus", dto.getReviewStatus());
         queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getReviewerId()), "reviewerId", dto.getReviewerId());
         queryWrapper.like(StrUtil.isNotEmpty(dto.getName()), "name", dto.getName());
@@ -133,11 +140,11 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         List<String> tags = dto.getTags();
         if (CollUtil.isNotEmpty(tags)) {
             for (String tag : tags) {
-                queryWrapper.like("tags","\"" + tag + "\"");
+                queryWrapper.like("tags", "\"" + tag + "\"");
             }
         }
         // 排序
-        queryWrapper.orderBy(StrUtil.isNotEmpty(dto.getSortField()), dto.getSortOrder().equals("ascend"),dto.getSortField());
+        queryWrapper.orderBy(StrUtil.isNotEmpty(dto.getSortField()), dto.getSortOrder().equals("ascend"), dto.getSortField());
         return queryWrapper;
     }
 
@@ -166,7 +173,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Set<Long> userIdSet = records.stream()
                 .map(Picture::getUserId)
                 .collect(Collectors.toSet());
-        Map<Long,List<User>> userIdUserListMap = userService.listByIds(userIdSet)
+        Map<Long, List<User>> userIdUserListMap = userService.listByIds(userIdSet)
                 .stream()
                 .collect(Collectors.groupingBy(User::getId));
         pictureVOList.forEach(vo -> {
@@ -184,7 +191,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     @Override
     public void reviewPicture(PictureReviewDTO dto, User loginUser) {
         // 1. 校验参数
-        throwIf(dto == null,ErrorCode.PARAMS_ERROR);
+        throwIf(dto == null, ErrorCode.PARAMS_ERROR);
         Long id = dto.getId();
         Integer reviewStatus = dto.getReviewStatus();
         PictureReviewStatus reviewStatusEnum = PictureReviewStatus.getNameByCode(reviewStatus);

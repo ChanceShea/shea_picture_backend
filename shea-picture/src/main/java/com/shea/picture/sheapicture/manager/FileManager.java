@@ -31,6 +31,7 @@ import static com.shea.picture.sheapicture.exception.ThrowUtils.throwIf;
 @Service
 @Slf4j
 @RequiredArgsConstructor
+@Deprecated
 public class FileManager {
 
     private final CosClientConfig cosClientConfig;

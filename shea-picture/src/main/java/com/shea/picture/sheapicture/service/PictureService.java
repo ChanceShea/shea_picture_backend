@@ -9,7 +9,6 @@ import com.shea.picture.sheapicture.domain.dto.picture.PictureUploadDTO;
 import com.shea.picture.sheapicture.domain.entity.Picture;
 import com.shea.picture.sheapicture.domain.entity.User;
 import com.shea.picture.sheapicture.domain.vo.PictureVO;
-import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 
@@ -28,12 +27,12 @@ public interface PictureService extends IService<Picture> {
 
     /**
      * 上传图片
-     * @param multipartFile
-     * @param pictureUploadDTO
-     * @param loginUser
+     * @param inputSource 输入源，可以是MultipartFile或Url
+     * @param pictureUploadDTO 上传图片的DTO
+     * @param loginUser 当前登录用户
      * @return
      */
-    PictureVO uploadPicture(MultipartFile multipartFile, PictureUploadDTO pictureUploadDTO, User loginUser);
+    PictureVO uploadPicture(Object inputSource, PictureUploadDTO pictureUploadDTO, User loginUser);
 
     /**
      * 获取查询条件

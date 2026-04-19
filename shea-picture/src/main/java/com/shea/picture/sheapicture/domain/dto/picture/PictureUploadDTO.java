@@ -16,5 +16,10 @@ public class PictureUploadDTO implements Serializable {
      */
     private Long id;
 
+    /**
+     * 图片 url
+     */
+    private String url;
+
     private static final long serialVersionUID = 1L;
 }

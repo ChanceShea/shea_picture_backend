@@ -61,6 +61,18 @@ public class PictureController {
         return Result.success(pictureVO);
     }
 
+    @PostMapping("/upload/url")
+//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public Result<PictureVO> uploadPictureByUrl(
+            @RequestBody PictureUploadDTO dto,
+            HttpServletRequest request
+    ) {
+        User loginUser = userService.getLoginUser(request);
+        String fileUrl = dto.getUrl();
+        PictureVO pictureVO = pictureService.uploadPicture(fileUrl, dto, loginUser);
+        return Result.success(pictureVO);
+    }
+
     @DeleteMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public Result<Boolean> removePictureById(@RequestBody DeleteRequest deleteRequest,HttpServletRequest request) {
