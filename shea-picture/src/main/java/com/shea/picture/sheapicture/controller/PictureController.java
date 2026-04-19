@@ -6,13 +6,11 @@ import com.shea.picture.sheapicture.annotation.AuthCheck;
 import com.shea.picture.sheapicture.common.DeleteRequest;
 import com.shea.picture.sheapicture.common.Result;
 import com.shea.picture.sheapicture.constant.UserConstant;
-import com.shea.picture.sheapicture.domain.dto.picture.PictureEditDTO;
-import com.shea.picture.sheapicture.domain.vo.PictureTagCategoryVO;
-import com.shea.picture.sheapicture.domain.dto.picture.PictureQueryDTO;
-import com.shea.picture.sheapicture.domain.dto.picture.PictureUpdateDTO;
-import com.shea.picture.sheapicture.domain.dto.picture.PictureUploadDTO;
+import com.shea.picture.sheapicture.domain.dto.picture.*;
 import com.shea.picture.sheapicture.domain.entity.Picture;
 import com.shea.picture.sheapicture.domain.entity.User;
+import com.shea.picture.sheapicture.domain.enums.PictureReviewStatus;
+import com.shea.picture.sheapicture.domain.vo.PictureTagCategoryVO;
 import com.shea.picture.sheapicture.domain.vo.PictureVO;
 import com.shea.picture.sheapicture.exception.BusinessException;
 import com.shea.picture.sheapicture.exception.ErrorCode;
@@ -52,7 +50,7 @@ public class PictureController {
      * @return 图片信息
      */
     @PostMapping("/upload")
-    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+//    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public Result<PictureVO> uploadPicture(
             @RequestPart("file") MultipartFile multipartFile,
             PictureUploadDTO dto,
@@ -83,7 +81,7 @@ public class PictureController {
 
     @PutMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public Result<Boolean> updatePicture(@RequestBody PictureUpdateDTO dto) {
+    public Result<Boolean> updatePicture(@RequestBody PictureUpdateDTO dto,HttpServletRequest request) {
         if (dto == null || dto.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
@@ -97,6 +95,9 @@ public class PictureController {
         Long id = dto.getId();
         Picture oldPicture = pictureService.getById(id);
         throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR,"图片不存在");
+        User loginUser = userService.getLoginUser(request);
+        // 填充审核参数
+        pictureService.fillReviewParams(picture, loginUser);
         boolean result = pictureService.updateById(picture);
         throwIf(!result, ErrorCode.OPERATION_ERROR);
         return Result.success(true);
@@ -126,10 +127,12 @@ public class PictureController {
     }
 
     @PostMapping("/list/page/vo")
-    public Result<Page<PictureVO>> listPictureByPageVO(@RequestBody PictureQueryDTO dto, HttpServletRequest request) {
+    public Result<Page<PictureVO>> listPictureVOByPage(@RequestBody PictureQueryDTO dto, HttpServletRequest request) {
         long current = dto.getCurrent();
         long size = dto.getPageSize();
         throwIf(size > 20,ErrorCode.OPERATION_ERROR,"用户查询记录不能超过20条");
+        // 普通用户默认只能看到审核通过的图片
+        dto.setReviewStatus(PictureReviewStatus.PASS.getCode());
         Page<Picture> page = pictureService.page(new Page<>(current, size),pictureService.getQueryWrapper(dto));
         return Result.success(pictureService.getPictureVOPage(page,request));
     }
@@ -147,6 +150,8 @@ public class PictureController {
         // 数据校验
         pictureService.validPicture(picture);
         User loginUser = userService.getLoginUser(request);
+        // 填充审核参数
+        pictureService.fillReviewParams(picture, loginUser);
         Long id = dto.getId();
         Picture oldPicture = pictureService.getById(id);
         throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR,"图片不存在");
@@ -167,6 +172,14 @@ public class PictureController {
         vo.setTagList(tagList);
         vo.setCategoryList(categoryList);
         return Result.success(vo);
+    }
 
+    @PostMapping("/review")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public Result<Boolean> reviewPicture(@RequestBody PictureReviewDTO dto, HttpServletRequest request) {
+        throwIf(dto == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        pictureService.reviewPicture(dto, loginUser);
+        return Result.success(true);
     }
 }
