@@ -1,10 +1,13 @@
 package com.shea.picture.sheapicture.manager.upload;
 
+import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.io.FileUtil;
 import cn.hutool.core.util.NumberUtil;
 import com.qcloud.cos.model.PutObjectResult;
+import com.qcloud.cos.model.ciModel.persistence.CIObject;
 import com.qcloud.cos.model.ciModel.persistence.ImageInfo;
+import com.qcloud.cos.model.ciModel.persistence.ProcessResults;
 import com.shea.picture.sheapicture.config.CosClientConfig;
 import com.shea.picture.sheapicture.domain.dto.filt.UploadPictureDTO;
 import com.shea.picture.sheapicture.exception.BusinessException;
@@ -15,6 +18,7 @@ import lombok.extern.slf4j.Slf4j;
 
 import java.io.File;
 import java.util.Date;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -55,6 +59,19 @@ public abstract class PictureUploadTemplate {
             PutObjectResult putObjectResult = cosManager.putPictureObject(uploadPath, file);
             // 获取图片信息对象
             ImageInfo imageInfo = putObjectResult.getCiUploadResult().getOriginalInfo().getImageInfo();
+            // 获取到图片处理结果
+            ProcessResults processResults = putObjectResult.getCiUploadResult().getProcessResults();
+            List<CIObject> objectList = processResults.getObjectList();
+            if (CollUtil.isNotEmpty(objectList)) {
+                CIObject compressed = objectList.get(0);
+                CIObject thumbnail = compressed;
+                // 仅在生成缩略图时，才能获取缩略图
+                if (objectList.size() > 1) {
+                    thumbnail = objectList.get(1);
+                }
+                // 封装压缩图片的返回结果
+                return buildRequest(originalFilename, compressed,thumbnail);
+            }
             return buildRequest(uploadPath, originalFilename, file, imageInfo);
         } catch (Exception e) {
             log.error("图片上传失败,{}",uploadPath,e);
@@ -63,6 +80,28 @@ public abstract class PictureUploadTemplate {
             // 清理临时文件
             deleteTemplateFile(file);
         }
+    }
+
+    /**
+     * 构建上传图片DTO
+     * @param originalFilename 原始文件名
+     * @param compressed 压缩后的图片信息
+     * @return 上传图片DTO
+     */
+    private UploadPictureDTO buildRequest(String originalFilename, CIObject compressed,CIObject thumbnail) {
+        // 封装返回结果
+        // 解析结果并返回
+        return UploadPictureDTO
+                .builder()
+                .url(cosClientConfig.getHost() + "/" + compressed.getKey())
+                .picName(FileUtil.mainName(originalFilename))
+                .picSize(compressed.getSize().longValue())
+                .picHeight(compressed.getHeight())
+                .picWidth(compressed.getWidth())
+                .picScale(NumberUtil.round((double) compressed.getWidth() / compressed.getHeight(), 2).doubleValue())
+                .picFormat(compressed.getFormat())
+                .thumbnailUrl(cosClientConfig.getHost() + "/" + thumbnail.getKey())
+                .build();
     }
 
     /**

@@ -1,5 +1,6 @@
 package com.shea.picture.sheapicture.manager;
 
+import cn.hutool.core.io.FileUtil;
 import com.qcloud.cos.COSClient;
 import com.qcloud.cos.model.COSObject;
 import com.qcloud.cos.model.PutObjectRequest;
@@ -10,6 +11,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 通用cos管理器
@@ -53,7 +56,31 @@ public class CosManager {
         // 对图片进行处理，获取图片的基本信息
         PicOperations picOperations = new PicOperations();
         picOperations.setIsPicInfo(1);
+
+        // 图片处理规则
+        List<PicOperations.Rule> rules = new ArrayList<>();
+        // 图片压缩（转换成webp格式）
+        String webpKey = FileUtil.mainName(key) + ".webp";
+        PicOperations.Rule compressRule = new PicOperations.Rule();
+        compressRule.setFileId(webpKey);
+        compressRule.setBucket(cosClientConfig.getBucket());
+        compressRule.setRule("imageMogr2/format/webp");
+        rules.add(compressRule);
+        // 仅对大于20K的图片进行缩略图处理
+        if (file.length() > 20 * 1024) {
+            // 缩略图处理
+            PicOperations.Rule thumbnailRule = new PicOperations.Rule();
+            thumbnailRule.setFileId(FileUtil.mainName(key) + "_thumbnail." + FileUtil.getSuffix(key));
+            thumbnailRule.setBucket(cosClientConfig.getBucket());
+            thumbnailRule.setRule(String.format("imageMogr2/thumbnail/%sx%s>",256,256));
+            rules.add(thumbnailRule);
+            picOperations.setRules(rules);
+        }
         putObjectRequest.setPicOperations(picOperations);
         return cosClient.putObject(putObjectRequest);
+    }
+
+    public void deleteObject(String key) {
+        cosClient.deleteObject(cosClientConfig.getBucket(), key);
     }
 }

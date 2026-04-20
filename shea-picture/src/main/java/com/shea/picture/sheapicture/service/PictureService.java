@@ -78,4 +78,10 @@ public interface PictureService extends IService<Picture> {
 
 
     Page<PictureVO> listPictureVOByPageWithCache(PictureQueryDTO dto, HttpServletRequest request);
+
+    /**
+     * 清理图片文件
+     * @param oldPicture 旧图片
+     */
+    void clearPictureFile(Picture oldPicture);
 }

@@ -89,6 +89,7 @@ public class PictureController {
         }
         boolean result = pictureService.removeById(deleteRequest.getId());
         throwIf(!result, ErrorCode.OPERATION_ERROR);
+        pictureService.clearPictureFile(oldPicture);
         return Result.success(true);
     }
 

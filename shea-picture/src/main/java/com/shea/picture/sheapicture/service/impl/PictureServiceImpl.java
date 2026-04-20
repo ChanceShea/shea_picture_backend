@@ -22,6 +22,7 @@ import com.shea.picture.sheapicture.domain.vo.PictureVO;
 import com.shea.picture.sheapicture.domain.vo.UserVO;
 import com.shea.picture.sheapicture.exception.BusinessException;
 import com.shea.picture.sheapicture.exception.ErrorCode;
+import com.shea.picture.sheapicture.manager.CosManager;
 import com.shea.picture.sheapicture.manager.upload.FilePictureUpload;
 import com.shea.picture.sheapicture.manager.upload.PictureUploadTemplate;
 import com.shea.picture.sheapicture.manager.upload.UrlPictureUpload;
@@ -36,6 +37,7 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
 import org.springframework.data.redis.core.StringRedisTemplate;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
@@ -68,6 +70,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             .maximumSize(10_000L) // 最大缓存数量
             .expireAfterWrite(Duration.ofMinutes(10)) // 缓存过期时间
             .build();
+    private final CosManager cosManager;
 
     @Override
     public void validPicture(Picture picture) {
@@ -125,6 +128,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
                 .picScale(uploadPictureDTO.getPicScale())
                 .picFormat(uploadPictureDTO.getPicFormat())
                 .userId(loginUser.getId())
+                .thumbnailUrl(uploadPictureDTO.getThumbnailUrl())
                 .build();
         this.fillReviewParams(picture, loginUser);
         // 如果pictureId不为空，表示更新，否则表示新增
@@ -342,6 +346,28 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         LOCAL_CACHE.put(cacheKey, JSONUtil.toJsonStr(page));
         Page<PictureVO> result = this.getPictureVOPage(page, request);
         return result;
+    }
+
+    /**
+     * 删除图片文件
+     * @param oldPicture 旧图片
+     */
+    @Async // 异步执行
+    @Override
+    public void clearPictureFile(Picture oldPicture) {
+        // 判断该图片是否被多条记录使用
+        String url = oldPicture.getUrl();
+        Long count = this.lambdaQuery()
+                .eq(Picture::getUrl, url)
+                .count();
+        if (count > 1) {
+            return;
+        }
+        cosManager.deleteObject(url);
+        String thumbnailUrl = oldPicture.getThumbnailUrl();
+        if (StrUtil.isNotBlank(thumbnailUrl)) {
+            cosManager.deleteObject(thumbnailUrl);
+        }
     }
 }
 
