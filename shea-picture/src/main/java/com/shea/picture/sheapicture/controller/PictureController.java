@@ -42,6 +42,7 @@ public class PictureController {
     private final UserService userService;
     private final PictureService pictureService;
 
+
     /**
      * 上传图片
      * @param multipartFile 图片
@@ -147,6 +148,35 @@ public class PictureController {
         dto.setReviewStatus(PictureReviewStatus.PASS.getCode());
         Page<Picture> page = pictureService.page(new Page<>(current, size),pictureService.getQueryWrapper(dto));
         return Result.success(pictureService.getPictureVOPage(page,request));
+    }
+    
+//    @PostMapping("/list/page/vo/redis/cache")
+//    public Result<Page<PictureVO>> listPictureVOByPageRedisCache(@RequestBody PictureQueryDTO dto, HttpServletRequest request) {
+//        long current = dto.getCurrent();
+//        long size = dto.getPageSize();
+//        throwIf(size > 20,ErrorCode.OPERATION_ERROR,"用户查询记录不能超过20条");
+//        // 普通用户默认只能看到审核通过的图片
+//        dto.setReviewStatus(PictureReviewStatus.PASS.getCode());
+//        String queryCondition = JSONUtil.toJsonStr(dto);
+//        String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+//        String redisKey = String.format("sheapicture:listPictureVOByPage:%s",hashKey);
+//        String cache = stringRedisTemplate.opsForValue().get(redisKey);
+//        if (cache != null) {
+//            // 如果缓存命中，直接返回缓存结果
+//            Page<PictureVO> cachePage = JSONUtil.toBean(cache, Page.class);
+//            return Result.success(cachePage);
+//        }
+//        // 如果缓存未命中，查询数据库并缓存结果
+//        Page<Picture> page = pictureService.page(new Page<>(current, size),pictureService.getQueryWrapper(dto));
+//        // 随机过期时间，防止缓存雪崩
+//        int cacheExpireTime = 300 + RandomUtil.randomInt(0, 300);
+//        stringRedisTemplate.opsForValue().set(redisKey, JSONUtil.toJsonStr(page), cacheExpireTime, TimeUnit.SECONDS);
+//        return Result.success(pictureService.getPictureVOPage(page,request));
+//    }
+
+    @PostMapping("/list/page/vo/cache")
+    public Result<Page<PictureVO>> listPictureVOByPageWithCache(@RequestBody PictureQueryDTO dto, HttpServletRequest request) {
+        return Result.success(pictureService.listPictureVOByPageWithCache(dto, request));
     }
 
     @PostMapping("/edit")

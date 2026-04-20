@@ -2,10 +2,14 @@ package com.shea.picture.sheapicture.service.impl;
 
 import cn.hutool.core.collection.CollUtil;
 import cn.hutool.core.util.ObjectUtil;
+import cn.hutool.core.util.RandomUtil;
 import cn.hutool.core.util.StrUtil;
+import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.shea.picture.sheapicture.domain.dto.filt.UploadPictureDTO;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureQueryDTO;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureReviewDTO;
@@ -31,11 +35,15 @@ import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
+import org.springframework.util.DigestUtils;
 
 import javax.servlet.http.HttpServletRequest;
 import java.io.IOException;
+import java.time.Duration;
 import java.util.*;
+import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
 import static com.shea.picture.sheapicture.exception.ThrowUtils.throwIf;
@@ -54,6 +62,12 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private final FilePictureUpload filePictureUpload;
     private final UrlPictureUpload urlPictureUpload;
     private final UserService userService;
+    private final StringRedisTemplate stringRedisTemplate;
+    private final Cache<String,String> LOCAL_CACHE = Caffeine.newBuilder()
+            .initialCapacity(1024)
+            .maximumSize(10_000L) // 最大缓存数量
+            .expireAfterWrite(Duration.ofMinutes(10)) // 缓存过期时间
+            .build();
 
     @Override
     public void validPicture(Picture picture) {
@@ -294,6 +308,40 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             }
         }
         return successCount;
+    }
+
+    @Override
+    public Page<PictureVO> listPictureVOByPageWithCache(PictureQueryDTO dto, HttpServletRequest request) {
+        long current = dto.getCurrent();
+        long size = dto.getPageSize();
+        throwIf(size > 20,ErrorCode.OPERATION_ERROR,"用户查询记录不能超过20条");
+        // 普通用户默认只能看到审核通过的图片
+        dto.setReviewStatus(PictureReviewStatus.PASS.getCode());
+        String queryCondition = JSONUtil.toJsonStr(dto);
+        String hashKey = DigestUtils.md5DigestAsHex(queryCondition.getBytes());
+        // 先从本地缓存中查询，
+        String cacheKey = String.format("sheapicture:listPictureVOByPage:%s",hashKey);
+        String cacheValue = LOCAL_CACHE.getIfPresent(cacheKey);
+        if (cacheValue != null) {
+            // 如果缓存命中，直接返回缓存结果
+            return JSONUtil.toBean(cacheValue, Page.class);
+        }
+        // 如果本地缓存未命中，查询分布式缓存
+        String redisCache = stringRedisTemplate.opsForValue().get(cacheKey);
+        if (redisCache != null) {
+            // 如果分布式缓存命中，直接返回缓存结果，并将结果存入到本地缓存中
+            Page<PictureVO> cachePage = JSONUtil.toBean(redisCache, Page.class);
+            LOCAL_CACHE.put(cacheKey, redisCache);
+            return cachePage;
+        }
+        Page<Picture> page = this.page(new Page<>(current, size), this.getQueryWrapper(dto));
+        // 如果本地缓存和分布式缓存都未命中，查询数据库并缓存结果，然后将结果存入到本地缓存和Redis缓存中
+        // 随机过期时间，防止缓存雪崩
+        int cacheExpireTime = 300 + RandomUtil.randomInt(0, 300);
+        stringRedisTemplate.opsForValue().set(cacheKey, JSONUtil.toJsonStr(page), cacheExpireTime, TimeUnit.SECONDS);
+        LOCAL_CACHE.put(cacheKey, JSONUtil.toJsonStr(page));
+        Page<PictureVO> result = this.getPictureVOPage(page, request);
+        return result;
     }
 }
 

@@ -11,6 +11,12 @@ spring:
     driver-class-name: com.mysql.cj.jdbc.Driver
     username: root
     password: root
+  redis:
+    database: 0
+    host: 192.168.100.104
+    port: 6379
+    password: xgw18720322169.
+    timeout: 5000
   # 开放更大的文件上传体积
   servlet:
     multipart:

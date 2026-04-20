@@ -75,4 +75,7 @@ public interface PictureService extends IService<Picture> {
      * @return 上传图片的数量
      */
     Integer uploadPictureByBatch(PictureUploadBatchDTO dto, User loginUser);
+
+
+    Page<PictureVO> listPictureVOByPageWithCache(PictureQueryDTO dto, HttpServletRequest request);
 }
