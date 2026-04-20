@@ -2,6 +2,10 @@ server:
   port: 8080
   servlet:
     context-path: /api
+    # cookie过期时间30天
+    session:
+      cookie:
+        max-age: 2592000
 
 spring:
   application:
@@ -17,6 +21,10 @@ spring:
     port: 6379
     password: xgw18720322169.
     timeout: 5000
+  session:
+    store-type: redis
+    # session过期时间 30天
+    timeout: 2592000
   # 开放更大的文件上传体积
   servlet:
     multipart:
