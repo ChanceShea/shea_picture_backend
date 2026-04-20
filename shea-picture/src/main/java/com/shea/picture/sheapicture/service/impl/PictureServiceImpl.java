@@ -9,6 +9,7 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.shea.picture.sheapicture.domain.dto.filt.UploadPictureDTO;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureQueryDTO;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureReviewDTO;
+import com.shea.picture.sheapicture.domain.dto.picture.PictureUploadBatchDTO;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureUploadDTO;
 import com.shea.picture.sheapicture.domain.entity.Picture;
 import com.shea.picture.sheapicture.domain.entity.User;
@@ -24,10 +25,16 @@ import com.shea.picture.sheapicture.mapper.PictureMapper;
 import com.shea.picture.sheapicture.service.PictureService;
 import com.shea.picture.sheapicture.service.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+import org.jsoup.nodes.Element;
+import org.jsoup.select.Elements;
 import org.springframework.beans.BeanUtils;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -40,6 +47,7 @@ import static com.shea.picture.sheapicture.exception.ThrowUtils.throwIf;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         implements PictureService {
 
@@ -87,12 +95,16 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         if (inputSource instanceof String) {
             template = urlPictureUpload;
         }
-            UploadPictureDTO uploadPictureDTO = template.uploadPicture(inputSource, uploadPathPrefix);
+        UploadPictureDTO uploadPictureDTO = template.uploadPicture(inputSource, uploadPathPrefix);
         // 拷贝图片信息
+        String picName = uploadPictureDTO.getPicName();
+        if (dto != null && dto.getPicName() != null) {
+            picName = dto.getPicName();
+        }
         Picture picture = Picture
                 .builder()
                 .url(uploadPictureDTO.getUrl())
-                .name(uploadPictureDTO.getPicName())
+                .name(picName)
                 .picSize(uploadPictureDTO.getPicSize())
                 .picWidth(uploadPictureDTO.getPicWidth())
                 .picHeight(uploadPictureDTO.getPicHeight())
@@ -227,6 +239,61 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
             // 非管理员更新图片，审核状态设为待审核
             picture.setReviewStatus(PictureReviewStatus.REVIEWING.getCode());
         }
+    }
+
+    @Override
+    public Integer uploadPictureByBatch(PictureUploadBatchDTO dto, User loginUser) {
+        // 校验参数
+        throwIf(dto == null, ErrorCode.PARAMS_ERROR, "参数不能为空");
+        Integer count = dto.getCount();
+        throwIf(count > 30, ErrorCode.PARAMS_ERROR, "上传数量不能超过30");
+        String namePrefix = dto.getNamePrefix();
+        if (StrUtil.isBlank(namePrefix)) {
+            namePrefix = dto.getSearchText();
+        }
+        // 抓取内容
+        String fetchUrl = String.format("https://cn.bing.com/images/async?q=%s&mmasync=1", dto.getSearchText());
+        Document document;
+        try {
+            document = Jsoup.connect(fetchUrl).get();
+        } catch (IOException e) {
+            log.error("获取资源失败", e);
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取页面失败");
+        }
+        // 解析内容
+        Element div = document.getElementsByClass("dgControl").first();
+        if (ObjectUtil.isEmpty(div)) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "获取元素失败");
+        }
+        Elements imgElementList = div.select("img.mimg");
+        // 遍历元素，依次上传图片
+        int successCount = 0;
+        for (Element element : imgElementList) {
+            String fileUrl = element.attr("src");
+            if (StrUtil.isBlank(fileUrl)) {
+                log.info("图片地址为空，跳过第{}张图片", successCount + 1);
+            }
+            // 处理图片地址，防止转义和对象存储冲突问题
+            int questionMark = fileUrl.indexOf("?");
+            if (questionMark > -1) {
+                fileUrl = fileUrl.substring(0, questionMark);
+            }
+            try {
+                // 上传图片
+                PictureUploadDTO pictureUploadDTO = new PictureUploadDTO();
+                pictureUploadDTO.setPicName(namePrefix + "_" + (successCount + 1));
+                pictureUploadDTO.setUrl(fileUrl);
+                PictureVO pictureVO = this.uploadPicture(fileUrl, pictureUploadDTO, loginUser);
+                log.info("图片上传成功，图片ID：{}", pictureVO.getId());
+                successCount++;
+            } catch (Exception e) {
+                log.error("图片上传失败，图片URL：{}", fileUrl, e);
+            }
+            if (successCount >= count) {
+                break;
+            }
+        }
+        return successCount;
     }
 }
 

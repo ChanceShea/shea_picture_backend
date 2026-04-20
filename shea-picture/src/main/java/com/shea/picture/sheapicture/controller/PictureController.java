@@ -194,4 +194,11 @@ public class PictureController {
         pictureService.reviewPicture(dto, loginUser);
         return Result.success(true);
     }
+
+    @PostMapping("/upload/batch")
+    @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
+    public Result<Integer> uploadPictureByBatch(@RequestBody PictureUploadBatchDTO dto, HttpServletRequest request) {
+        User loginUser = userService.getLoginUser(request);
+        return Result.success(pictureService.uploadPictureByBatch(dto, loginUser));
+    }
 }

@@ -6,25 +6,25 @@ import java.io.Serializable;
 
 /**
  * @author : Shea.
- * @since : 2026/4/18 19:06
+ * @since : 2026/4/20 08:45
  */
 @Data
-public class PictureUploadDTO implements Serializable {
+public class PictureUploadBatchDTO implements Serializable {
 
     /**
-     * 图片 id
+     * 搜索文本
      */
-    private Long id;
+    private String searchText;
 
     /**
-     * 图片 url
+     * 上传数量
      */
-    private String url;
+    private Integer count = 10;
 
     /**
-     * 图片名称
+     * 文件名前缀
      */
-    private String picName;
+    private String namePrefix;
 
     private static final long serialVersionUID = 1L;
 }

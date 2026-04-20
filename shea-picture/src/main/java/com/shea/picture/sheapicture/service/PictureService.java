@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureQueryDTO;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureReviewDTO;
+import com.shea.picture.sheapicture.domain.dto.picture.PictureUploadBatchDTO;
 import com.shea.picture.sheapicture.domain.dto.picture.PictureUploadDTO;
 import com.shea.picture.sheapicture.domain.entity.Picture;
 import com.shea.picture.sheapicture.domain.entity.User;
@@ -66,4 +67,12 @@ public interface PictureService extends IService<Picture> {
     void reviewPicture(PictureReviewDTO pictureReviewDTO, User loginUser);
 
     void fillReviewParams(Picture picture, User loginUser);
+
+    /**
+     * 批量抓取并上传图片
+     * @param dto 批量上传图片的DTO
+     * @param loginUser 当前登录用户
+     * @return 上传图片的数量
+     */
+    Integer uploadPictureByBatch(PictureUploadBatchDTO dto, User loginUser);
 }
