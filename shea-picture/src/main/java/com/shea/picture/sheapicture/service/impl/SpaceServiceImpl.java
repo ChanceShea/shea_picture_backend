@@ -26,10 +26,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.Set;
+import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
@@ -73,7 +70,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         // 3. 校验权限，非管理员用户只能创建普通级别空间
         Long id = loginUser.getId();
         space.setUserId(id);
-        if (SpaceLevelEnum.NORMAL.getValue() != space.getSpaceLevel() && !userService.isAdmin(loginUser)) {
+        if (!Objects.equals(SpaceLevelEnum.NORMAL.getValue(), space.getSpaceLevel()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有权限创建指定级别的空间");
         }
         // 4. 控制一个用户只能有一个私有空间
@@ -162,9 +159,9 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
             return queryWrapper;
         }
         queryWrapper.eq(dto.getId() != null, "id", dto.getId())
-                .eq(dto.getUserId() != null, "user_id", dto.getUserId())
-                .like(StrUtil.isNotBlank(dto.getSpaceName()), "space_name", dto.getSpaceName())
-                .eq(dto.getSpaceLevel() != null, "space_level", dto.getSpaceLevel())
+                .eq(dto.getUserId() != null, "userId", dto.getUserId())
+                .like(StrUtil.isNotBlank(dto.getSpaceName()), "spaceName", dto.getSpaceName())
+                .eq(dto.getSpaceLevel() != null, "spaceLevel", dto.getSpaceLevel())
                 .orderBy(dto.getSortField() != null, dto.getSortOrder().equals("ascend"), dto.getSortField());
         return queryWrapper;
     }
@@ -176,11 +173,11 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
             // 只有管理员没有填写最大值时，才将默认的最大值填入
             // 方便通过扩展包来对空间进行扩展
             long maxSize = level.getMaxSize();
-            if (space.getMaxSize() == 0) {
+            if (space.getMaxSize() == null) {
                 space.setMaxSize(maxSize);
             }
             long maxCount = level.getMaxCount();
-            if (space.getMaxCount() == 0) {
+            if (space.getMaxCount() == null) {
                 space.setMaxCount(maxCount);
             }
         }

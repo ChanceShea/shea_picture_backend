@@ -123,7 +123,7 @@ public class PictureController {
             User loginUser = userService.getLoginUser(request);
             pictureService.checkPictureAuth(picture, loginUser);
         }
-        return Result.success(PictureVO.objToVo(picture));
+        return Result.success(pictureService.getPictureVO(picture, request));
     }
 
     @PostMapping("/list/page")

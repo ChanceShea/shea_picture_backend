@@ -177,12 +177,14 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         transactionTemplate.execute(status -> {
             boolean result = this.saveOrUpdate(picture);
             throwIf(!result, ErrorCode.OPERATION_ERROR, "图片上传失败，数据库操作失败");
-            boolean updated = spaceService.lambdaUpdate()
-                    .eq(Space::getId, finalSpaceId)
-                    .setSql("totalSize = totalSize + " + picture.getPicSize())
-                    .setSql("totalCount = totalCount + 1")
-                    .update();
-            throwIf(!updated, ErrorCode.OPERATION_ERROR, "图片上传失败，空间额度更新失败");
+            if (finalSpaceId != null) {
+                boolean updated = spaceService.lambdaUpdate()
+                        .eq(Space::getId, finalSpaceId)
+                        .setSql("totalSize = totalSize + " + picture.getPicSize())
+                        .setSql("totalCount = totalCount + 1")
+                        .update();
+                throwIf(!updated, ErrorCode.OPERATION_ERROR, "图片上传失败，空间额度更新失败");
+            }
             return true;
         });
         return PictureVO.objToVo(picture);
@@ -442,7 +444,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         }
         User loginUser = userService.getLoginUser(request);
         Picture oldPicture = this.getById(deleteRequest.getId());
-        throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR,"图片不存在");
+        throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
         // 校验权限
         this.checkPictureAuth(oldPicture, loginUser);
 
@@ -479,9 +481,9 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         this.fillReviewParams(picture, loginUser);
         Long id = dto.getId();
         Picture oldPicture = this.getById(id);
-        throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR,"图片不存在");
+        throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
         // 校验权限
-        this.checkPictureAuth(picture, loginUser);
+        this.checkPictureAuth(oldPicture, loginUser);
         boolean result = this.updateById(picture);
         throwIf(!result, ErrorCode.OPERATION_ERROR);
         return true;
