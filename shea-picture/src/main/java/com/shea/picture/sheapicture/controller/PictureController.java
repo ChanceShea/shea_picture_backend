@@ -8,6 +8,7 @@ import com.shea.picture.sheapicture.common.Result;
 import com.shea.picture.sheapicture.constant.UserConstant;
 import com.shea.picture.sheapicture.domain.dto.picture.*;
 import com.shea.picture.sheapicture.domain.entity.Picture;
+import com.shea.picture.sheapicture.domain.entity.Space;
 import com.shea.picture.sheapicture.domain.entity.User;
 import com.shea.picture.sheapicture.domain.enums.PictureReviewStatus;
 import com.shea.picture.sheapicture.domain.vo.PictureTagCategoryVO;
@@ -15,6 +16,7 @@ import com.shea.picture.sheapicture.domain.vo.PictureVO;
 import com.shea.picture.sheapicture.exception.BusinessException;
 import com.shea.picture.sheapicture.exception.ErrorCode;
 import com.shea.picture.sheapicture.service.PictureService;
+import com.shea.picture.sheapicture.service.SpaceService;
 import com.shea.picture.sheapicture.service.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -24,7 +26,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import javax.servlet.http.HttpServletRequest;
 import java.util.Arrays;
-import java.util.Date;
 import java.util.List;
 
 import static com.shea.picture.sheapicture.exception.ThrowUtils.throwIf;
@@ -41,6 +42,7 @@ public class PictureController {
 
     private final UserService userService;
     private final PictureService pictureService;
+    private final SpaceService spaceService;
 
 
     /**
@@ -77,20 +79,7 @@ public class PictureController {
     @DeleteMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
     public Result<Boolean> removePictureById(@RequestBody DeleteRequest deleteRequest,HttpServletRequest request) {
-        if (deleteRequest == null || deleteRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        User loginUser = userService.getLoginUser(request);
-        Picture oldPicture = pictureService.getById(deleteRequest.getId());
-        throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR,"图片不存在");
-        // 验证图片是否属于当前用户或者当前用户是否是管理员，否则抛出无权限错误
-        if (oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        boolean result = pictureService.removeById(deleteRequest.getId());
-        throwIf(!result, ErrorCode.OPERATION_ERROR);
-        pictureService.clearPictureFile(oldPicture);
-        return Result.success(true);
+        return Result.success(pictureService.removePictureById(deleteRequest,request));
     }
 
     @PutMapping("/update")
@@ -128,6 +117,12 @@ public class PictureController {
         throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         Picture picture = pictureService.getById(id);
         throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR,"图片不存在");
+        // 空间权限校验
+        Long spaceId = picture.getSpaceId();
+        if (spaceId != null) {
+            User loginUser = userService.getLoginUser(request);
+            pictureService.checkPictureAuth(picture, loginUser);
+        }
         return Result.success(PictureVO.objToVo(picture));
     }
 
@@ -145,8 +140,21 @@ public class PictureController {
         long current = dto.getCurrent();
         long size = dto.getPageSize();
         throwIf(size > 20,ErrorCode.OPERATION_ERROR,"用户查询记录不能超过20条");
+        Long spaceId = dto.getSpaceId();
         // 普通用户默认只能看到审核通过的图片
-        dto.setReviewStatus(PictureReviewStatus.PASS.getCode());
+        if (spaceId == null) {
+            // 查询公开图库
+            dto.setReviewStatus(PictureReviewStatus.PASS.getCode());
+            dto.setNullSpace(true);
+        } else {
+            // 查询个人空间
+            User loginUser = userService.getLoginUser(request);
+            Space space = spaceService.getById(spaceId);
+            throwIf(space == null, ErrorCode.NOT_FOUND_ERROR,"空间不存在");
+            if (!loginUser.getId().equals(space.getUserId())) {
+                throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+            }
+        }
         Page<Picture> page = pictureService.page(new Page<>(current, size),pictureService.getQueryWrapper(dto));
         return Result.success(pictureService.getPictureVOPage(page,request));
     }
@@ -176,35 +184,14 @@ public class PictureController {
 //    }
 
     @PostMapping("/list/page/vo/cache")
+    @Deprecated
     public Result<Page<PictureVO>> listPictureVOByPageWithCache(@RequestBody PictureQueryDTO dto, HttpServletRequest request) {
         return Result.success(pictureService.listPictureVOByPageWithCache(dto, request));
     }
 
     @PostMapping("/edit")
     public Result<Boolean> editPicture(@RequestBody PictureEditDTO dto, HttpServletRequest request) {
-        if (dto == null || dto.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        Picture picture = new Picture();
-        BeanUtils.copyProperties(dto, picture);
-        picture.setTags(JSONUtil.toJsonStr(dto.getTags()));
-        // 设置编辑时间（用户）
-        picture.setEditTime(new Date());
-        // 数据校验
-        pictureService.validPicture(picture);
-        User loginUser = userService.getLoginUser(request);
-        // 填充审核参数
-        pictureService.fillReviewParams(picture, loginUser);
-        Long id = dto.getId();
-        Picture oldPicture = pictureService.getById(id);
-        throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR,"图片不存在");
-        // 仅本人或者管理员可以编辑
-        if (!oldPicture.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
-        boolean result = pictureService.updateById(picture);
-        throwIf(!result, ErrorCode.OPERATION_ERROR);
-        return Result.success(true);
+        return Result.success(pictureService.editPicture(dto,request));
     }
 
     @GetMapping("/tag_category")

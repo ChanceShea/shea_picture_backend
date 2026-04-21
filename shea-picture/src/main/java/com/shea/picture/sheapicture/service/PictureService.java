@@ -3,10 +3,8 @@ package com.shea.picture.sheapicture.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.shea.picture.sheapicture.domain.dto.picture.PictureQueryDTO;
-import com.shea.picture.sheapicture.domain.dto.picture.PictureReviewDTO;
-import com.shea.picture.sheapicture.domain.dto.picture.PictureUploadBatchDTO;
-import com.shea.picture.sheapicture.domain.dto.picture.PictureUploadDTO;
+import com.shea.picture.sheapicture.common.DeleteRequest;
+import com.shea.picture.sheapicture.domain.dto.picture.*;
 import com.shea.picture.sheapicture.domain.entity.Picture;
 import com.shea.picture.sheapicture.domain.entity.User;
 import com.shea.picture.sheapicture.domain.vo.PictureVO;
@@ -84,4 +82,29 @@ public interface PictureService extends IService<Picture> {
      * @param oldPicture 旧图片
      */
     void clearPictureFile(Picture oldPicture);
+
+    /**
+     * 校验图片权限
+     * @param picture 图片
+     * @param loginUser 当前登录用户
+     */
+    void checkPictureAuth(Picture picture, User loginUser);
+
+    /**
+     * 删除图片
+     * @param deleteRequest 删除图片的请求参数
+     * @param request HTTP请求
+     * @return
+     */
+    boolean removePictureById(DeleteRequest deleteRequest, HttpServletRequest request);
+
+    /**
+     * 编辑图片
+     * @param dto 编辑图片的DTO
+     * @param request HTTP请求
+     * @return
+     */
+    boolean editPicture(PictureEditDTO dto, HttpServletRequest request);
+
+    boolean removePictureBySpaceId(DeleteRequest deleteRequest, HttpServletRequest request);
 }

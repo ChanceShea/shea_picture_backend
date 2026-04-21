@@ -79,6 +79,16 @@ public class PictureQueryDTO extends PageRequest implements Serializable {
     private Long userId;
 
     /**
+     * 空间ID
+     */
+    private Long spaceId = null;
+
+    /**
+     * 是否是空间图片
+     */
+    private boolean isNullSpace;
+
+    /**
      * 审核状态：0-待审核; 1-通过; 2-拒绝
      */
     private Integer reviewStatus;
