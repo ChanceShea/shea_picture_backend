@@ -3,6 +3,8 @@ package com.shea.picture.sheapicture.controller;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shea.picture.sheapicture.annotation.AuthCheck;
+import com.shea.picture.sheapicture.api.imagesearch.model.ImageSearchResult;
+import com.shea.picture.sheapicture.api.imagesearch.sub.ImageSearchApiFacade;
 import com.shea.picture.sheapicture.common.DeleteRequest;
 import com.shea.picture.sheapicture.common.Result;
 import com.shea.picture.sheapicture.constant.UserConstant;
@@ -218,5 +220,21 @@ public class PictureController {
     public Result<Integer> uploadPictureByBatch(@RequestBody PictureUploadBatchDTO dto, HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
         return Result.success(pictureService.uploadPictureByBatch(dto, loginUser));
+    }
+
+    /**
+     * 以图搜图
+     * @param dto 搜索图片请求
+     * @return 搜索图片结果
+     */
+    @PostMapping("/search/picture")
+    public Result<List<ImageSearchResult>> searchPictureByPicture(@RequestBody SearchPictureByPictureDTO dto) {
+        throwIf(dto == null, ErrorCode.PARAMS_ERROR);
+        Long pictureId = dto.getPictureId();
+        throwIf(pictureId == null, ErrorCode.PARAMS_ERROR);
+        Picture picture = pictureService.getById(pictureId);
+        throwIf(picture == null, ErrorCode.NOT_FOUND_ERROR);
+        List<ImageSearchResult> imageSearchResults = ImageSearchApiFacade.searchImage(picture.getUrl());
+        return Result.success(imageSearchResults);
     }
 }
