@@ -70,7 +70,7 @@ public abstract class PictureUploadTemplate {
                     thumbnail = objectList.get(1);
                 }
                 // 封装压缩图片的返回结果
-                return buildRequest(originalFilename, compressed,thumbnail);
+                return buildRequest(originalFilename, compressed,thumbnail,imageInfo);
             }
             return buildRequest(uploadPath, originalFilename, file, imageInfo);
         } catch (Exception e) {
@@ -88,7 +88,7 @@ public abstract class PictureUploadTemplate {
      * @param compressed 压缩后的图片信息
      * @return 上传图片DTO
      */
-    private UploadPictureDTO buildRequest(String originalFilename, CIObject compressed,CIObject thumbnail) {
+    private UploadPictureDTO buildRequest(String originalFilename, CIObject compressed,CIObject thumbnail,ImageInfo imageInfo) {
         // 封装返回结果
         // 解析结果并返回
         return UploadPictureDTO
@@ -100,6 +100,7 @@ public abstract class PictureUploadTemplate {
                 .picWidth(compressed.getWidth())
                 .picScale(NumberUtil.round((double) compressed.getWidth() / compressed.getHeight(), 2).doubleValue())
                 .picFormat(compressed.getFormat())
+                .picColor(imageInfo.getAve())
                 .thumbnailUrl(cosClientConfig.getHost() + "/" + thumbnail.getKey())
                 .build();
     }
@@ -158,6 +159,7 @@ public abstract class PictureUploadTemplate {
                 .picWidth(imageInfo.getWidth())
                 .picScale(NumberUtil.round((double) imageInfo.getWidth() / imageInfo.getHeight(), 2).doubleValue())
                 .picFormat(imageInfo.getFormat())
+                .picColor(imageInfo.getAve())
                 .build();
     }
 }

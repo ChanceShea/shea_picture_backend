@@ -237,4 +237,11 @@ public class PictureController {
         List<ImageSearchResult> imageSearchResults = ImageSearchApiFacade.searchImage(picture.getUrl());
         return Result.success(imageSearchResults);
     }
+
+    @PostMapping("/search/color")
+    public Result<List<PictureVO>> searchPictureByColor(@RequestBody SearchPictureByColorDTO dto,HttpServletRequest request) {
+        throwIf(dto == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        return Result.success(pictureService.searchPictureByColor(dto.getSpaceId(), dto.getPicColor(), loginUser));
+    }
 }

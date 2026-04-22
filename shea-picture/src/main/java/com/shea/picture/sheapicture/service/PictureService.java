@@ -10,6 +10,7 @@ import com.shea.picture.sheapicture.domain.entity.User;
 import com.shea.picture.sheapicture.domain.vo.PictureVO;
 
 import javax.servlet.http.HttpServletRequest;
+import java.util.List;
 
 /**
 * @author xgw
@@ -107,4 +108,6 @@ public interface PictureService extends IService<Picture> {
     boolean editPicture(PictureEditDTO dto, HttpServletRequest request);
 
     boolean removePictureBySpaceId(DeleteRequest deleteRequest, HttpServletRequest request);
+
+    List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
 }
