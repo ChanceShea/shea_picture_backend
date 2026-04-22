@@ -213,6 +213,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getReviewStatus()), "reviewStatus", dto.getReviewStatus());
         queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getReviewerId()), "reviewerId", dto.getReviewerId());
         queryWrapper.eq(ObjectUtil.isNotEmpty(dto.getSpaceId()), "spaceId", dto.getSpaceId());
+        queryWrapper.ge(ObjectUtil.isNotEmpty(dto.getStartEditTime()), "editTime", dto.getStartEditTime());
+        queryWrapper.lt(ObjectUtil.isNotEmpty(dto.getEndEditTime()), "editTime", dto.getEndEditTime());
         queryWrapper.isNull(dto.isNullSpace(), "spaceId");
         queryWrapper.like(StrUtil.isNotEmpty(dto.getName()), "name", dto.getName());
         queryWrapper.like(StrUtil.isNotEmpty(dto.getIntroduction()), "introduction", dto.getIntroduction());
