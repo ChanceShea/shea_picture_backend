@@ -110,4 +110,11 @@ public interface PictureService extends IService<Picture> {
     boolean removePictureBySpaceId(DeleteRequest deleteRequest, HttpServletRequest request);
 
     List<PictureVO> searchPictureByColor(Long spaceId, String picColor, User loginUser);
+
+    /**
+     * 批量编辑图片
+     * @param dto 编辑图片的DTO
+     * @param loginUser 登录用户
+     */
+    void editPictureByBatch(PictureEditBatchDTO dto, User loginUser);
 }

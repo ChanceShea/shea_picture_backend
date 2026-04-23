@@ -244,4 +244,12 @@ public class PictureController {
         User loginUser = userService.getLoginUser(request);
         return Result.success(pictureService.searchPictureByColor(dto.getSpaceId(), dto.getPicColor(), loginUser));
     }
+
+    @PostMapping("/edit/batch")
+    public Result<Boolean> editPictureByBatch(@RequestBody PictureEditBatchDTO dto, HttpServletRequest request) {
+        throwIf(dto == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        pictureService.editPictureByBatch(dto, loginUser);
+        return Result.success(true);
+    }
 }
