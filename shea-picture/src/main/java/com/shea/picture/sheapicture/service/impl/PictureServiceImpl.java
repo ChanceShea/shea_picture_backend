@@ -12,6 +12,9 @@ import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
+import com.shea.picture.sheapicture.api.aliyunai.AliYunAiApi;
+import com.shea.picture.sheapicture.api.aliyunai.model.CreateOutPaintingDTO;
+import com.shea.picture.sheapicture.api.aliyunai.model.CreateOutPaintingVO;
 import com.shea.picture.sheapicture.common.DeleteRequest;
 import com.shea.picture.sheapicture.domain.dto.filt.UploadPictureDTO;
 import com.shea.picture.sheapicture.domain.dto.picture.*;
@@ -79,6 +82,7 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
     private final CosManager cosManager;
     private final SpaceService spaceService;
     private final TransactionTemplate transactionTemplate;
+    private final AliYunAiApi aliYunAiApi;
 
     @Override
     public void validPicture(Picture picture) {
@@ -586,6 +590,22 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         // 批量更新
         boolean result = this.updateBatchById(pictures);
         throwIf(!result, ErrorCode.OPERATION_ERROR);
+    }
+
+    @Override
+    public CreateOutPaintingVO createPictureOutPaintingTask(CreatePictureOutPaintingDTO dto, User loginUser) {
+        // 获取图片信息
+        Long pictureId = dto.getPictureId();
+        Picture picture = Optional.ofNullable(this.getById(pictureId)).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR,"图片不存在"));
+        // 权限校验
+        checkPictureAuth(picture,loginUser);
+        // 创建扩图任务
+        CreateOutPaintingDTO createOutPaintingDTO = new CreateOutPaintingDTO();
+        CreateOutPaintingDTO.Input input = new CreateOutPaintingDTO.Input();
+        input.setImageUrl(picture.getUrl());
+        createOutPaintingDTO.setInput(input);
+        createOutPaintingDTO.setParameters(dto.getParameters());
+        return aliYunAiApi.createOutPaintingTask(createOutPaintingDTO);
     }
 
     private void fillPictureWithNameRule(List<Picture> pictures, String nameRule) {

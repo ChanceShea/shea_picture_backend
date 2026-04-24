@@ -3,6 +3,7 @@ package com.shea.picture.sheapicture.service;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.shea.picture.sheapicture.api.aliyunai.model.CreateOutPaintingVO;
 import com.shea.picture.sheapicture.common.DeleteRequest;
 import com.shea.picture.sheapicture.domain.dto.picture.*;
 import com.shea.picture.sheapicture.domain.entity.Picture;
@@ -117,4 +118,11 @@ public interface PictureService extends IService<Picture> {
      * @param loginUser 登录用户
      */
     void editPictureByBatch(PictureEditBatchDTO dto, User loginUser);
+
+    /**
+     * 创建扩图任务
+     * @param dto
+     * @param loginUser
+     */
+    CreateOutPaintingVO createPictureOutPaintingTask(CreatePictureOutPaintingDTO dto, User loginUser);
 }

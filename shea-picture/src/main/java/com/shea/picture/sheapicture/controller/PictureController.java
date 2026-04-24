@@ -1,8 +1,12 @@
 package com.shea.picture.sheapicture.controller;
 
+import cn.hutool.core.util.StrUtil;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.shea.picture.sheapicture.annotation.AuthCheck;
+import com.shea.picture.sheapicture.api.aliyunai.AliYunAiApi;
+import com.shea.picture.sheapicture.api.aliyunai.model.CreateOutPaintingVO;
+import com.shea.picture.sheapicture.api.aliyunai.model.GetOutPaintingVO;
 import com.shea.picture.sheapicture.api.imagesearch.model.ImageSearchResult;
 import com.shea.picture.sheapicture.api.imagesearch.sub.ImageSearchApiFacade;
 import com.shea.picture.sheapicture.common.DeleteRequest;
@@ -45,6 +49,7 @@ public class PictureController {
     private final UserService userService;
     private final PictureService pictureService;
     private final SpaceService spaceService;
+    private final AliYunAiApi aliYunAiApi;
 
 
     /**
@@ -251,5 +256,29 @@ public class PictureController {
         User loginUser = userService.getLoginUser(request);
         pictureService.editPictureByBatch(dto, loginUser);
         return Result.success(true);
+    }
+
+    /**
+     * 创建AI扩图任务
+     */
+    @PostMapping("/out_painting/create_task")
+    public Result<CreateOutPaintingVO> createPictureOutPaintingTask(
+            @RequestBody CreatePictureOutPaintingDTO dto,
+            HttpServletRequest request
+    ) {
+        throwIf(dto == null || dto.getPictureId() == null, ErrorCode.PARAMS_ERROR);
+        User loginUser = userService.getLoginUser(request);
+        CreateOutPaintingVO pictureOutPaintingTask = pictureService.createPictureOutPaintingTask(dto, loginUser);
+        return Result.success(pictureOutPaintingTask);
+    }
+
+    /**
+     * 查询AI扩图任务
+     */
+    @GetMapping("/out_painting/get_task")
+    public Result<GetOutPaintingVO> getPictureOutPaintingTask(String taskId) {
+        throwIf(StrUtil.isBlank(taskId), ErrorCode.PARAMS_ERROR);
+        GetOutPaintingVO outPaintingTask = aliYunAiApi.getOutPaintingTask(taskId);
+        return Result.success(outPaintingTask);
     }
 }
