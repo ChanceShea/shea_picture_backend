@@ -49,8 +49,8 @@ public class SpaceController {
 
 
     @PostMapping("/add")
-    public Result<Long> addSpace(@RequestBody SpaceAddDTO dto,HttpServletRequest request) {
-        throwIf(dto == null,ErrorCode.PARAMS_ERROR);
+    public Result<Long> addSpace(@RequestBody SpaceAddDTO dto, HttpServletRequest request) {
+        throwIf(dto == null, ErrorCode.PARAMS_ERROR);
         User loginUser = userService.getLoginUser(request);
         long newId = spaceService.addSpace(dto, loginUser);
         return Result.success(newId);
@@ -58,26 +58,26 @@ public class SpaceController {
 
     @DeleteMapping("/delete")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public Result<Boolean> removeSpaceById(@RequestBody DeleteRequest deleteRequest,HttpServletRequest request) {
-
-        return Result.success(true);
+    public Result<Boolean> removeSpaceById(@RequestBody DeleteRequest deleteRequest, HttpServletRequest request) {
+        throwIf(deleteRequest == null || deleteRequest.getId() <= 0, ErrorCode.PARAMS_ERROR);
+        return Result.success(spaceService.removeSpaceById(deleteRequest, request));
     }
 
     @PutMapping("/update")
     @AuthCheck(mustRole = UserConstant.ADMIN_ROLE)
-    public Result<Boolean> updateSpace(@RequestBody SpaceUpdateDTO dto,HttpServletRequest request) {
+    public Result<Boolean> updateSpace(@RequestBody SpaceUpdateDTO dto, HttpServletRequest request) {
         if (dto == null || dto.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
         }
         // 判断是否存在
         Long id = dto.getId();
         Space oldSpace = spaceService.getById(id);
-        throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR,"空间不存在");
+        throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
         BeanUtil.copyProperties(dto, oldSpace, CopyOptions.create().setIgnoreNullValue(true));
         // 自动填充数据
         spaceService.fillSpaceBySpaceLevel(oldSpace);
         // 参数校验
-        spaceService.validSpace(oldSpace,false);
+        spaceService.validSpace(oldSpace, false);
         boolean result = spaceService.updateById(oldSpace);
         throwIf(!result, ErrorCode.OPERATION_ERROR);
         return Result.success(true);
@@ -85,7 +85,8 @@ public class SpaceController {
 
     /**
      * 根据id获取空间
-     * @param id 空间id
+     *
+     * @param id      空间id
      * @param request 请求
      * @return 空间信息
      */
@@ -93,7 +94,7 @@ public class SpaceController {
     public Result<SpaceVO> getSpaceVOById(Long id, HttpServletRequest request) {
         throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         Space space = spaceService.getById(id);
-        throwIf(space == null, ErrorCode.NOT_FOUND_ERROR,"空间不存在");
+        throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
         return Result.success(SpaceVO.objToVo(space));
     }
 
@@ -102,7 +103,7 @@ public class SpaceController {
     public Result<Page<Space>> listSpaceByPage(@RequestBody SpaceQueryDTO dto, HttpServletRequest request) {
         long current = dto.getCurrent();
         long size = dto.getPageSize();
-        Page<Space> page = spaceService.page(new Page<>(current, size),spaceService.getQueryWrapper(dto));
+        Page<Space> page = spaceService.page(new Page<>(current, size), spaceService.getQueryWrapper(dto));
         return Result.success(page);
     }
 
@@ -110,9 +111,9 @@ public class SpaceController {
     public Result<Page<SpaceVO>> listSpaceVOByPage(@RequestBody SpaceQueryDTO dto, HttpServletRequest request) {
         long current = dto.getCurrent();
         long size = dto.getPageSize();
-        throwIf(size > 20,ErrorCode.OPERATION_ERROR,"用户查询记录不能超过20条");
-        Page<Space> page = spaceService.page(new Page<>(current, size),spaceService.getQueryWrapper(dto));
-        return Result.success(spaceService.getSpaceVOPage(page,request));
+        throwIf(size > 20, ErrorCode.OPERATION_ERROR, "用户查询记录不能超过20条");
+        Page<Space> page = spaceService.page(new Page<>(current, size), spaceService.getQueryWrapper(dto));
+        return Result.success(spaceService.getSpaceVOPage(page, request));
     }
 
     @PostMapping("/edit")
@@ -127,15 +128,13 @@ public class SpaceController {
         // 设置编辑时间（用户）
         space.setEditTime(new Date());
         // 数据校验
-        spaceService.validSpace(space,false);
+        spaceService.validSpace(space, false);
         User loginUser = userService.getLoginUser(request);
         Long id = dto.getId();
         Space oldSpace = spaceService.getById(id);
-        throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR,"空间不存在");
+        throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
         // 仅本人或者管理员可以编辑
-        if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        spaceService.checkSpaceAuth(oldSpace, loginUser);
         boolean result = spaceService.updateById(space);
         throwIf(!result, ErrorCode.OPERATION_ERROR);
         return Result.success(true);
@@ -143,6 +142,7 @@ public class SpaceController {
 
     /**
      * 获取空间等级列表
+     *
      * @return 空间等级列表
      */
     @GetMapping("/list/level")

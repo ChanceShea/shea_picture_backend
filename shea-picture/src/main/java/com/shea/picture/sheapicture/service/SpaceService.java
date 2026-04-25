@@ -65,4 +65,11 @@ public interface SpaceService extends IService<Space> {
     void fillSpaceBySpaceLevel(Space space);
 
     boolean removeSpaceById(DeleteRequest deleteRequest, HttpServletRequest request);
+
+    /**
+     * 校验空间权限
+     * @param space 空间
+     * @param loginUser 登录用户
+     */
+    void checkSpaceAuth(Space space,User loginUser);
 }

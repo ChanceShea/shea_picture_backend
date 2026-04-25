@@ -193,14 +193,19 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         Space oldSpace = this.getById(deleteRequest.getId());
         throwIf(oldSpace == null, ErrorCode.NOT_FOUND_ERROR,"空间不存在");
         // 验证空间是否属于当前用户或者当前用户是否是管理员，否则抛出无权限错误
-        if (!oldSpace.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
-            throw new BusinessException(ErrorCode.NO_AUTH_ERROR);
-        }
+        checkSpaceAuth(oldSpace, loginUser);
         boolean result = this.removeById(deleteRequest.getId());
         // 删除空间下的所有图片
         boolean result2 = pictureService.removePictureBySpaceId(deleteRequest, request);
         throwIf(!(result && result2), ErrorCode.OPERATION_ERROR);
         return true;
+    }
+
+    @Override
+    public void checkSpaceAuth(Space space, User loginUser) {
+        if (!space.getUserId().equals(loginUser.getId()) && !userService.isAdmin(loginUser)) {
+            throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有空间权限");
+        }
     }
 }
 
