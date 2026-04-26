@@ -25,10 +25,16 @@ public class SpaceVO implements Serializable {
      * 空间名称
      */
     private String spaceName;
+
     /**
      * 空间等级
      */
     private Integer spaceLevel;
+
+    /**
+     * 空间类型 0:私有 1:公开
+     */
+    private Integer spaceType;
 
     /**
      * 空间最大存储空间

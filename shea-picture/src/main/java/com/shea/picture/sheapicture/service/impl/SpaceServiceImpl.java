@@ -9,8 +9,11 @@ import com.shea.picture.sheapicture.common.DeleteRequest;
 import com.shea.picture.sheapicture.domain.dto.space.SpaceAddDTO;
 import com.shea.picture.sheapicture.domain.dto.space.SpaceQueryDTO;
 import com.shea.picture.sheapicture.domain.entity.Space;
+import com.shea.picture.sheapicture.domain.entity.SpaceUser;
 import com.shea.picture.sheapicture.domain.entity.User;
 import com.shea.picture.sheapicture.domain.enums.SpaceLevelEnum;
+import com.shea.picture.sheapicture.domain.enums.SpaceRoleEnum;
+import com.shea.picture.sheapicture.domain.enums.SpaceTypeEnum;
 import com.shea.picture.sheapicture.domain.vo.SpaceVO;
 import com.shea.picture.sheapicture.domain.vo.UserVO;
 import com.shea.picture.sheapicture.exception.BusinessException;
@@ -18,6 +21,7 @@ import com.shea.picture.sheapicture.exception.ErrorCode;
 import com.shea.picture.sheapicture.mapper.SpaceMapper;
 import com.shea.picture.sheapicture.service.PictureService;
 import com.shea.picture.sheapicture.service.SpaceService;
+import com.shea.picture.sheapicture.service.SpaceUserService;
 import com.shea.picture.sheapicture.service.UserService;
 import org.springframework.beans.BeanUtils;
 import org.springframework.context.annotation.Lazy;
@@ -45,11 +49,13 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     private final TransactionTemplate transactionTemplate;
     private final Map<String,Object> lockMap = new ConcurrentHashMap<>();
     private final PictureService pictureService;
+    private final SpaceUserService spaceUserService;
 
-    public SpaceServiceImpl(UserService userService, TransactionTemplate transactionTemplate,@Lazy PictureService pictureService) {
+    public SpaceServiceImpl(UserService userService, TransactionTemplate transactionTemplate, @Lazy PictureService pictureService, SpaceUserService spaceUserService) {
         this.userService = userService;
         this.transactionTemplate = transactionTemplate;
         this.pictureService = pictureService;
+        this.spaceUserService = spaceUserService;
     }
 
 
@@ -64,6 +70,9 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         if (space.getSpaceLevel() == null) {
             space.setSpaceLevel(SpaceLevelEnum.NORMAL.getValue());
         }
+        if (space.getSpaceType() == null) {
+            space.setSpaceType(SpaceTypeEnum.PRIVATE.getValue());
+        }
         this.fillSpaceBySpaceLevel(space);
         // 2. 校验参数
         this.validSpace(space, true);
@@ -73,7 +82,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         if (!Objects.equals(SpaceLevelEnum.NORMAL.getValue(), space.getSpaceLevel()) && !userService.isAdmin(loginUser)) {
             throw new BusinessException(ErrorCode.NO_AUTH_ERROR, "没有权限创建指定级别的空间");
         }
-        // 4. 控制一个用户只能有一个私有空间
+        // 4. 控制一个用户只能有一个私有空间和一个团队空间
 //        String lock = String.valueOf(id).intern();
         Object lock = lockMap.computeIfAbsent(String.valueOf(id), k -> new Object());
         synchronized (lock) {
@@ -83,12 +92,22 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                 // 判断用户是否已有空间
                 boolean exists = this.lambdaQuery()
                         .eq(Space::getUserId, id)
+                        .eq(Space::getSpaceType,space.getSpaceType())
                         .exists();
                 // 如果已有，则不能创建
-                throwIf(exists, ErrorCode.OPERATION_ERROR, "用户已存在空间");
+                throwIf(exists, ErrorCode.OPERATION_ERROR, "用户已存在该类别的空间");
                 // 如果没有，则可以创建
                 boolean res = this.save(space);
                 throwIf(!res, ErrorCode.OPERATION_ERROR, "创建空间失败");
+                // 创建成功后，如果是团队空间，则将当前用户关联到空间
+                if(Objects.equals(SpaceTypeEnum.TEAM.getValue(), space.getSpaceType())) {
+                    SpaceUser spaceUser = new SpaceUser();
+                    spaceUser.setSpaceId(space.getId());
+                    spaceUser.setUserId(id);
+                    spaceUser.setSpaceRole(SpaceRoleEnum.ADMIN.getValue());
+                    res = spaceUserService.save(spaceUser);
+                    throwIf(!res, ErrorCode.OPERATION_ERROR, "创建团队成员记录失败");
+                }
                 return space.getId();
             });
             return Optional.ofNullable(execute).orElse(-1L);
@@ -100,9 +119,12 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         throwIf(space == null, ErrorCode.PARAMS_ERROR);
         String spaceName = space.getSpaceName();
         Integer spaceLevel = space.getSpaceLevel();
+        Integer spaceType = space.getSpaceType();
+        SpaceTypeEnum spaceTypeEnum = SpaceTypeEnum.getSpaceTypeEnumByText(spaceType);
         if (add) {
             throwIf(StrUtil.isBlank(spaceName), ErrorCode.PARAMS_ERROR, "空间名称不能为空");
             throwIf(spaceLevel == null, ErrorCode.PARAMS_ERROR, "空间等级不能为空");
+            throwIf(spaceType == null, ErrorCode.PARAMS_ERROR,"空间类别不能为空");
         }
         if (StrUtil.isNotBlank(spaceName) && spaceName.length() > 30) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间名称长度不能超过30");
@@ -111,6 +133,11 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
             SpaceLevelEnum spaceLevelByValue = SpaceLevelEnum.getSpaceLevelByValue(spaceLevel);
             if (spaceLevelByValue == null) {
                 throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间等级不存在");
+            }
+        }
+        if (spaceType != null) {
+            if (spaceTypeEnum == null) {
+                throw new BusinessException(ErrorCode.PARAMS_ERROR, "空间类别不存在");
             }
         }
     }
@@ -162,6 +189,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                 .eq(dto.getUserId() != null, "userId", dto.getUserId())
                 .like(StrUtil.isNotBlank(dto.getSpaceName()), "spaceName", dto.getSpaceName())
                 .eq(dto.getSpaceLevel() != null, "spaceLevel", dto.getSpaceLevel())
+                .eq(dto.getSpaceType() != null, "spaceType", dto.getSpaceType())
                 .orderBy(dto.getSortField() != null, dto.getSortOrder().equals("ascend"), dto.getSortField());
         return queryWrapper;
     }
