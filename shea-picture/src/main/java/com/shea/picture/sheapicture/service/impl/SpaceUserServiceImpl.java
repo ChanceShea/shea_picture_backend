@@ -19,7 +19,6 @@ import com.shea.picture.sheapicture.mapper.SpaceUserMapper;
 import com.shea.picture.sheapicture.service.SpaceService;
 import com.shea.picture.sheapicture.service.SpaceUserService;
 import com.shea.picture.sheapicture.service.UserService;
-import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
 import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
@@ -39,13 +38,17 @@ import static com.shea.picture.sheapicture.exception.ThrowUtils.throwIf;
  * @createDate 2026-04-25 21:14:20
  */
 @Service
-@RequiredArgsConstructor
 public class SpaceUserServiceImpl extends ServiceImpl<SpaceUserMapper, SpaceUser>
         implements SpaceUserService {
 
     private final UserService userService;
     @Lazy
     private final SpaceService spaceService;
+
+    public SpaceUserServiceImpl(UserService userService, @Lazy SpaceService spaceService) {
+        this.userService = userService;
+        this.spaceService = spaceService;
+    }
 
 
     @Override
