@@ -49,6 +49,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     private final TransactionTemplate transactionTemplate;
     private final Map<String,Object> lockMap = new ConcurrentHashMap<>();
     private final PictureService pictureService;
+    @Lazy
     private final SpaceUserService spaceUserService;
 
     public SpaceServiceImpl(UserService userService, TransactionTemplate transactionTemplate, @Lazy PictureService pictureService, SpaceUserService spaceUserService) {
