@@ -21,6 +21,7 @@ import com.shea.picture.sheapicture.service.SpaceUserService;
 import com.shea.picture.sheapicture.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.BeanUtils;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
 
 import javax.servlet.http.HttpServletRequest;
@@ -43,6 +44,7 @@ public class SpaceUserServiceImpl extends ServiceImpl<SpaceUserMapper, SpaceUser
         implements SpaceUserService {
 
     private final UserService userService;
+    @Lazy
     private final SpaceService spaceService;
 
 

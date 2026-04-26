@@ -22,7 +22,7 @@ public enum SpaceTypeEnum {
         this.value = value;
     }
 
-    public static SpaceTypeEnum getSpaceTypeEnumByText(Integer value) {
+    public static SpaceTypeEnum getSpaceTypeEnumByValue(Integer value) {
         if (ObjectUtil.isEmpty(value)) {
             return null;
         }

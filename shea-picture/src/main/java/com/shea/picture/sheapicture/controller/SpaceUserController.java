@@ -11,6 +11,8 @@ import com.shea.picture.sheapicture.domain.entity.SpaceUser;
 import com.shea.picture.sheapicture.domain.entity.User;
 import com.shea.picture.sheapicture.domain.vo.SpaceUserVO;
 import com.shea.picture.sheapicture.exception.ErrorCode;
+import com.shea.picture.sheapicture.manager.auth.annotation.SaSpaceCheckPermission;
+import com.shea.picture.sheapicture.manager.auth.model.SpaceUserPermissionConstant;
 import com.shea.picture.sheapicture.service.SpaceUserService;
 import com.shea.picture.sheapicture.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -43,6 +45,7 @@ public class SpaceUserController {
      * @return 空间用户ID
      */
     @PostMapping("/add")
+    @SaSpaceCheckPermission(value= SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public Result<Long> addSpaceUser(@RequestBody SpaceUserAddDTO dto) {
         throwIf(dto == null, ErrorCode.PARAMS_ERROR);
         long id = spaceUserService.addSpaceUser(dto);
@@ -55,6 +58,7 @@ public class SpaceUserController {
      * @return 是否删除成功
      */
     @PostMapping("/delete")
+    @SaSpaceCheckPermission(value= SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public Result<Boolean> deleteSpaceUser(@RequestBody DeleteRequest deleteRequest) {
         throwIf(deleteRequest == null, ErrorCode.PARAMS_ERROR);
         Long id = deleteRequest.getId();
@@ -71,6 +75,7 @@ public class SpaceUserController {
       * @return 空间用户信息
      */
     @PostMapping("/get")
+    @SaSpaceCheckPermission(value= SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public Result<SpaceUser> getSpaceUser(@RequestBody SpaceUserQueryDTO dto) {
         throwIf(dto == null, ErrorCode.PARAMS_ERROR);
         Long spaceId = dto.getSpaceId();
@@ -87,6 +92,7 @@ public class SpaceUserController {
      * @return 空间用户列表
      */
     @PostMapping("/list")
+    @SaSpaceCheckPermission(value= SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public Result<List<SpaceUserVO>> listSpaceUser(@RequestBody SpaceUserQueryDTO dto) {
         throwIf(dto == null, ErrorCode.PARAMS_ERROR);
         List<SpaceUser> spaceUserList = spaceUserService.list(spaceUserService.getQueryWrapper(dto));
@@ -99,6 +105,7 @@ public class SpaceUserController {
      * @return 是否编辑成功
      */
     @PostMapping("/edit")
+    @SaSpaceCheckPermission(value= SpaceUserPermissionConstant.SPACE_USER_MANAGE)
     public Result<Boolean> editSpaceUser(@RequestBody SpaceUserEditDTO dto) {
         throwIf(dto == null || dto.getId() <= 0, ErrorCode.PARAMS_ERROR);
         SpaceUser spaceUser = new SpaceUser();

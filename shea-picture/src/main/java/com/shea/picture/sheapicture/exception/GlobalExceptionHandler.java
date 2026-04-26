@@ -1,5 +1,7 @@
 package com.shea.picture.sheapicture.exception;
 
+import cn.dev33.satoken.exception.NotLoginException;
+import cn.dev33.satoken.exception.NotPermissionException;
 import com.shea.picture.sheapicture.common.Result;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.ExceptionHandler;
@@ -24,5 +26,17 @@ public class GlobalExceptionHandler {
     public Result<?> runtimeExceptionHandler(RuntimeException e) {
         log.error("RuntimeException",e);
         return Result.error(ErrorCode.SYSTEM_ERROR,"系统错误");
+    }
+
+    @ExceptionHandler(NotLoginException.class)
+    public Result<?> notLoginExceptionHandler(NotLoginException e) {
+        log.error("NotLoginException",e);
+        return Result.error(ErrorCode.NOT_LOGIN_ERROR,"请先登录");
+    }
+
+    @ExceptionHandler(NotPermissionException.class)
+    public Result<?> notPermissionExceptionHandler(NotPermissionException e) {
+        log.error("NotPermissionException",e);
+        return Result.error(ErrorCode.NO_AUTH_ERROR,"没有权限");
     }
 }

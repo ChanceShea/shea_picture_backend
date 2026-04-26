@@ -18,6 +18,7 @@ import com.shea.picture.sheapicture.domain.enums.SpaceLevelEnum;
 import com.shea.picture.sheapicture.domain.vo.SpaceVO;
 import com.shea.picture.sheapicture.exception.BusinessException;
 import com.shea.picture.sheapicture.exception.ErrorCode;
+import com.shea.picture.sheapicture.manager.auth.SpaceUserAuthManager;
 import com.shea.picture.sheapicture.service.SpaceService;
 import com.shea.picture.sheapicture.service.UserService;
 import lombok.RequiredArgsConstructor;
@@ -46,6 +47,7 @@ public class SpaceController {
 
     private final UserService userService;
     private final SpaceService spaceService;
+    private final SpaceUserAuthManager spaceUserAuthManager;
 
 
     @PostMapping("/add")
@@ -95,7 +97,10 @@ public class SpaceController {
         throwIf(id <= 0, ErrorCode.PARAMS_ERROR);
         Space space = spaceService.getById(id);
         throwIf(space == null, ErrorCode.NOT_FOUND_ERROR, "空间不存在");
-        return Result.success(SpaceVO.objToVo(space));
+        SpaceVO spaceVO = spaceService.getSpaceVO(space, request);
+        List<String> permissions = spaceUserAuthManager.getPermissions(space, userService.getLoginUser(request));
+        spaceVO.setPermissions(permissions);
+        return Result.success(spaceVO);
     }
 
     @PostMapping("/list/page")

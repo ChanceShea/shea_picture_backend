@@ -120,7 +120,7 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
         String spaceName = space.getSpaceName();
         Integer spaceLevel = space.getSpaceLevel();
         Integer spaceType = space.getSpaceType();
-        SpaceTypeEnum spaceTypeEnum = SpaceTypeEnum.getSpaceTypeEnumByText(spaceType);
+        SpaceTypeEnum spaceTypeEnum = SpaceTypeEnum.getSpaceTypeEnumByValue(spaceType);
         if (add) {
             throwIf(StrUtil.isBlank(spaceName), ErrorCode.PARAMS_ERROR, "空间名称不能为空");
             throwIf(spaceLevel == null, ErrorCode.PARAMS_ERROR, "空间等级不能为空");

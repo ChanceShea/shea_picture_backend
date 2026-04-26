@@ -18,6 +18,7 @@ import com.shea.picture.sheapicture.domain.vo.LoginUserVO;
 import com.shea.picture.sheapicture.domain.vo.UserVO;
 import com.shea.picture.sheapicture.exception.BusinessException;
 import com.shea.picture.sheapicture.exception.ErrorCode;
+import com.shea.picture.sheapicture.manager.auth.StpKit;
 import com.shea.picture.sheapicture.mapper.UserMapper;
 import com.shea.picture.sheapicture.service.UserService;
 import lombok.extern.slf4j.Slf4j;
@@ -106,6 +107,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User>
         }
         // 4 登录成功，返回用户信息
         request.getSession().setAttribute(UserConstant.USER_LOGIN_STATE,user);
+        // 记录用户登录态到sa-token，便于空间鉴权使用，保证该用户信息和SpringSession中信息过期时间一致
+        StpKit.SPACE.login(user.getId());
+        StpKit.SPACE.getSession().set(UserConstant.USER_LOGIN_STATE,user);
         return this.getLoginUserVO(user);
     }
 

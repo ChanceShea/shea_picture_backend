@@ -456,7 +456,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Picture oldPicture = this.getById(deleteRequest.getId());
         throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
         // 校验权限
-        this.checkPictureAuth(oldPicture, loginUser);
+        // 改为使用Sa-Token鉴权校验
+//        this.checkPictureAuth(oldPicture, loginUser);
 
         transactionTemplate.execute(status -> {
             boolean result = this.removeById(deleteRequest.getId());
@@ -493,7 +494,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Picture oldPicture = this.getById(id);
         throwIf(oldPicture == null, ErrorCode.NOT_FOUND_ERROR, "图片不存在");
         // 校验权限
-        this.checkPictureAuth(oldPicture, loginUser);
+        // 改为使用Sa-Token鉴权校验
+//        this.checkPictureAuth(oldPicture, loginUser);
         boolean result = this.updateById(picture);
         throwIf(!result, ErrorCode.OPERATION_ERROR);
         return true;
@@ -598,7 +600,8 @@ public class PictureServiceImpl extends ServiceImpl<PictureMapper, Picture>
         Long pictureId = dto.getPictureId();
         Picture picture = Optional.ofNullable(this.getById(pictureId)).orElseThrow(() -> new BusinessException(ErrorCode.NOT_FOUND_ERROR,"图片不存在"));
         // 权限校验
-        checkPictureAuth(picture,loginUser);
+        // 改为使用Sa-Token鉴权校验
+//        checkPictureAuth(picture,loginUser);
         // 创建扩图任务
         CreateOutPaintingDTO createOutPaintingDTO = new CreateOutPaintingDTO();
         CreateOutPaintingDTO.Input input = new CreateOutPaintingDTO.Input();
