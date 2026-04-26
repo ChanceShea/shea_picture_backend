@@ -18,6 +18,7 @@ import com.shea.picture.sheapicture.domain.vo.SpaceVO;
 import com.shea.picture.sheapicture.domain.vo.UserVO;
 import com.shea.picture.sheapicture.exception.BusinessException;
 import com.shea.picture.sheapicture.exception.ErrorCode;
+import com.shea.picture.sheapicture.manager.sharding.DynamicShardingManager;
 import com.shea.picture.sheapicture.mapper.SpaceMapper;
 import com.shea.picture.sheapicture.service.PictureService;
 import com.shea.picture.sheapicture.service.SpaceService;
@@ -50,12 +51,15 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
     private final Map<String,Object> lockMap = new ConcurrentHashMap<>();
     private final PictureService pictureService;
     private final SpaceUserService spaceUserService;
+    @Lazy
+    private final DynamicShardingManager dynamicShardingManager;
 
-    public SpaceServiceImpl(UserService userService, TransactionTemplate transactionTemplate, @Lazy PictureService pictureService, SpaceUserService spaceUserService) {
+    public SpaceServiceImpl(UserService userService, TransactionTemplate transactionTemplate, @Lazy PictureService pictureService, SpaceUserService spaceUserService, @Lazy DynamicShardingManager dynamicShardingManager) {
         this.userService = userService;
         this.transactionTemplate = transactionTemplate;
         this.pictureService = pictureService;
         this.spaceUserService = spaceUserService;
+        this.dynamicShardingManager = dynamicShardingManager;
     }
 
 
@@ -108,6 +112,8 @@ public class SpaceServiceImpl extends ServiceImpl<SpaceMapper, Space>
                     res = spaceUserService.save(spaceUser);
                     throwIf(!res, ErrorCode.OPERATION_ERROR, "创建团队成员记录失败");
                 }
+                // 创建分表，仅对旗舰版团队空间生效
+                dynamicShardingManager.createSpacePictureTable(space);
                 return space.getId();
             });
             return Optional.ofNullable(execute).orElse(-1L);

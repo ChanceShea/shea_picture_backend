@@ -29,6 +29,32 @@ spring:
   servlet:
     multipart:
       max-file-size: 10MB
+  shardingsphere:
+    datasource:
+      names: shea_picture
+      shea_picture:
+        type: com.zaxxer.hikari.HikariDataSource
+        driver-class-name: com.mysql.cj.jdbc.Driver
+        url: jdbc:mysql://192.168.100.104:3306/shea_picture
+        username: root
+        password: root
+    rules:
+      sharding:
+        tables:
+          picture:
+            actual-data-nodes: shea_picture.picture # 动态分表
+            table-strategy:
+              standard:
+                sharding-column: spaceId
+                sharding-algorithm-name: picture_sharding_algorithm # 使用自定义分片规则
+        sharding-algorithms:
+          picture_sharding_algorithm:
+            type: CLASS_BASED
+            props:
+              strategy: standard
+              algorithmClassName: com.shea.picture.sheapicture.manager.sharding.PictureShardingAlgorithm
+    props:
+      sql-show: true
 mybatis-plus:
   mapper-locations: classpath*:/mapper/**/*.xml
   configuration:
@@ -39,6 +65,7 @@ mybatis-plus:
       logic-delete-field: isDelete
       logic-delete-value: 1
       logic-not-delete-value: 0
+    enable-sql-runner: true # 开启SQL执行器
 
 # 接口文档配置
 knife4j:
