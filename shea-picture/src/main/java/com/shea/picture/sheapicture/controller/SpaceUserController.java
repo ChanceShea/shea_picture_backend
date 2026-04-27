@@ -120,12 +120,12 @@ public class SpaceUserController {
     }
 
     /**
-     * 获取当前用户的空间用户列表
+     * 查询我加入的团队空间列表
      * @param request 请求
      * @return 空间用户列表
      */
     @PostMapping("/list/my")
-    public Result<List<SpaceUserVO>> listMySpaceUser(HttpServletRequest request) {
+    public Result<List<SpaceUserVO>> listMyTeamSpace(HttpServletRequest request) {
         User loginUser = userService.getLoginUser(request);
         SpaceUserQueryDTO dto = new SpaceUserQueryDTO();
         dto.setUserId(loginUser.getId());
