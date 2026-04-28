@@ -3,7 +3,7 @@ package com.shea.picture.sheapicture.domain.vo;
 import lombok.Data;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.util.Date;
 
 /**
  * @author : Shea.
@@ -40,9 +40,9 @@ public class UserVO implements Serializable {
     /**
      * 创建时间
      */
-    private LocalDateTime createTime;
+    private Date createTime;
     /**
      * 更新时间
      */
-    private LocalDateTime updateTime;
+    private Date updateTime;
 }
